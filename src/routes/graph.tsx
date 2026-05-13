@@ -75,8 +75,8 @@ function Graph() {
         position: { x: 0, y: i * rowH },
         data: { label: `⏰ ${r.Name}` },
         style: nodeStyle("rule"),
-        sourcePosition: "right" as const,
-        targetPosition: "left" as const,
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
       });
     });
 
@@ -86,8 +86,8 @@ function Graph() {
         position: { x: colW, y: i * rowH },
         data: { label: `⚡ ${f.FunctionName}` },
         style: nodeStyle("lambda"),
-        sourcePosition: "right" as const,
-        targetPosition: "left" as const,
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
       });
     });
 
@@ -97,8 +97,8 @@ function Graph() {
         position: { x: colW * 2, y: i * rowH },
         data: { label: `📦 ${q.name}` },
         style: nodeStyle("sqs"),
-        sourcePosition: "right" as const,
-        targetPosition: "left" as const,
+        sourcePosition: Position.Right,
+        targetPosition: Position.Left,
       });
     });
 
