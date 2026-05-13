@@ -67,6 +67,7 @@ export async function presignDownload(bucket: string, key: string) {
 }
 export async function getObjectText(bucket: string, key: string): Promise<string> {
   const res = await clients().s3.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
-  // @ts-expect-error transformToString exists in browser SDK
-  return res.Body!.transformToString("utf-8");
+  return (res.Body as { transformToString: (e: string) => Promise<string> }).transformToString(
+    "utf-8"
+  );
 }
