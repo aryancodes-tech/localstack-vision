@@ -10,11 +10,35 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SqsRouteImport } from './routes/sqs'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as S3RouteImport } from './routes/s3'
+import { Route as LambdaRouteImport } from './routes/lambda'
+import { Route as EventsRouteImport } from './routes/events'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SqsRoute = SqsRouteImport.update({
   id: '/sqs',
   path: '/sqs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const S3Route = S3RouteImport.update({
+  id: '/s3',
+  path: '/s3',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LambdaRoute = LambdaRouteImport.update({
+  id: '/lambda',
+  path: '/lambda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,27 +49,43 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/events': typeof EventsRoute
+  '/lambda': typeof LambdaRoute
+  '/s3': typeof S3Route
+  '/settings': typeof SettingsRoute
   '/sqs': typeof SqsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/events': typeof EventsRoute
+  '/lambda': typeof LambdaRoute
+  '/s3': typeof S3Route
+  '/settings': typeof SettingsRoute
   '/sqs': typeof SqsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/events': typeof EventsRoute
+  '/lambda': typeof LambdaRoute
+  '/s3': typeof S3Route
+  '/settings': typeof SettingsRoute
   '/sqs': typeof SqsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/sqs'
+  fullPaths: '/' | '/events' | '/lambda' | '/s3' | '/settings' | '/sqs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/sqs'
-  id: '__root__' | '/' | '/sqs'
+  to: '/' | '/events' | '/lambda' | '/s3' | '/settings' | '/sqs'
+  id: '__root__' | '/' | '/events' | '/lambda' | '/s3' | '/settings' | '/sqs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EventsRoute: typeof EventsRoute
+  LambdaRoute: typeof LambdaRoute
+  S3Route: typeof S3Route
+  SettingsRoute: typeof SettingsRoute
   SqsRoute: typeof SqsRoute
 }
 
@@ -56,6 +96,34 @@ declare module '@tanstack/react-router' {
       path: '/sqs'
       fullPath: '/sqs'
       preLoaderRoute: typeof SqsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/s3': {
+      id: '/s3'
+      path: '/s3'
+      fullPath: '/s3'
+      preLoaderRoute: typeof S3RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lambda': {
+      id: '/lambda'
+      path: '/lambda'
+      fullPath: '/lambda'
+      preLoaderRoute: typeof LambdaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,8 +138,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EventsRoute: EventsRoute,
+  LambdaRoute: LambdaRoute,
+  S3Route: S3Route,
+  SettingsRoute: SettingsRoute,
   SqsRoute: SqsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
