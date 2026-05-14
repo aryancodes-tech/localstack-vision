@@ -20,6 +20,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Nitro (Vercel Build Output API — generated locally when VERCEL=1)
+.vercel/output
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

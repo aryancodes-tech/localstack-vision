@@ -7,6 +7,7 @@
 // Use the package ESM build: `main` points at `dist/index.cjs`, which `require()`s
 // ESM-only `lovable-tagger` and fails when Vite bundles the config as CJS.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config/dist/index.js";
+import { nitro } from "nitro/vite";
 import { oceanLocalstackProxyVitePlugin } from "./src/server/ocean-localstack-proxy-vite-plugin";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
@@ -15,13 +16,22 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 // `/__ls_ocean` is proxied in `vite dev` via `oceanLocalstackProxyVitePlugin` (pre-middleware)
 // so TanStack never returns a generic 404 for that path; `src/server.ts` still proxies for
 // runtimes that hit the worker entry without the Vite stack.
+//
+// Vercel sets `VERCEL=1` during builds. TanStack Start on Vercel uses Nitro with the `vercel`
+// preset (see TanStack hosting docs). Do not use `defineConfig(() => …)` here: Lovable's
+// wrapper treats a function callback as returning *only* the inner Vite config, so top-level
+// keys like `cloudflare` and `tanstackStart` would be ignored.
+const vercelCi = process.env.VERCEL === "1";
+
 export default defineConfig({
+  cloudflare: vercelCi ? false : undefined,
   tanstackStart: {
     server: { entry: "server" },
   },
   vite: {
     envPrefix: ["VITE_", "LOCALSTACK_"],
     plugins: [
+      ...(vercelCi ? [nitro({ preset: "vercel" })] : []),
       oceanLocalstackProxyVitePlugin(),
       // @smithy/util-buffer-from (used by @aws-sdk signing) does `import { Buffer } from "buffer"`.
       // Without this polyfill the browser bundle sees Buffer as undefined and throws on any SDK call.
