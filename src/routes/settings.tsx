@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useConfig } from "@/store/config";
+import { useState } from "react";
+import { useConfig, type AwsConfig } from "@/store/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,6 +19,44 @@ function SettingsPage() {
   const qc = useQueryClient();
   const cfg = useConfig();
 
+  // Local draft — edits live here until the user clicks "Apply & reconnect".
+  // This avoids the zustand-persist/SSR hydration race where the controlled input
+  // appears to revert on keystroke because the store re-renders from stale localStorage.
+  const [draft, setDraft] = useState<AwsConfig>({
+    endpoint: cfg.endpoint,
+    region: cfg.region,
+    accessKeyId: cfg.accessKeyId,
+    secretAccessKey: cfg.secretAccessKey,
+    forcePathStyle: cfg.forcePathStyle,
+  });
+
+  const isDirty =
+    draft.endpoint !== cfg.endpoint ||
+    draft.region !== cfg.region ||
+    draft.accessKeyId !== cfg.accessKeyId ||
+    draft.secretAccessKey !== cfg.secretAccessKey ||
+    draft.forcePathStyle !== cfg.forcePathStyle;
+
+  function applyDraft() {
+    cfg.set(draft);
+    void qc.invalidateQueries();
+    toast.success("Settings saved — reconnecting…");
+  }
+
+  function resetAll() {
+    cfg.reset();
+    const defaults = {
+      endpoint: "http://localstack.oceaninfra.localhost",
+      region: "eu-central-1",
+      accessKeyId: "test",
+      secretAccessKey: "test",
+      forcePathStyle: true,
+    };
+    setDraft(defaults);
+    void qc.invalidateQueries();
+    toast.success("Reset to defaults");
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -32,28 +71,32 @@ function SettingsPage() {
           <div>
             <Label className="text-xs">Endpoint URL</Label>
             <Input
-              value={cfg.endpoint}
-              onChange={(e) => cfg.set({ endpoint: e.target.value })}
-              placeholder="http://localhost:4566"
+              value={draft.endpoint}
+              onChange={(e) => setDraft((d) => ({ ...d, endpoint: e.target.value }))}
+              placeholder="http://localstack.oceaninfra.localhost"
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Default LocalStack edge port. Supports{" "}
-              <code>localhost.localstack.cloud</code> and custom overrides.
+              Use <code>http://localstack.oceaninfra.localhost</code> for Ocean (default), or{" "}
+              <code>http://localhost:4566</code> for standalone LocalStack.{" "}
+              <code>*.oceaninfra.localhost</code> endpoints are automatically proxied server-side so
+              the Ocean gateway never sees a browser{" "}
+              <code className="text-[10px]">Origin</code> header.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">Region</Label>
               <Input
-                value={cfg.region}
-                onChange={(e) => cfg.set({ region: e.target.value })}
+                value={draft.region}
+                onChange={(e) => setDraft((d) => ({ ...d, region: e.target.value }))}
+                placeholder="eu-central-1"
               />
             </div>
             <div>
               <Label className="text-xs">Access key id</Label>
               <Input
-                value={cfg.accessKeyId}
-                onChange={(e) => cfg.set({ accessKeyId: e.target.value })}
+                value={draft.accessKeyId}
+                onChange={(e) => setDraft((d) => ({ ...d, accessKeyId: e.target.value }))}
               />
             </div>
           </div>
@@ -61,8 +104,8 @@ function SettingsPage() {
             <Label className="text-xs">Secret access key</Label>
             <Input
               type="password"
-              value={cfg.secretAccessKey}
-              onChange={(e) => cfg.set({ secretAccessKey: e.target.value })}
+              value={draft.secretAccessKey}
+              onChange={(e) => setDraft((d) => ({ ...d, secretAccessKey: e.target.value }))}
             />
           </div>
           <div className="flex items-center justify-between rounded-md border border-border p-3">
@@ -73,27 +116,15 @@ function SettingsPage() {
               </p>
             </div>
             <Switch
-              checked={cfg.forcePathStyle}
-              onCheckedChange={(v) => cfg.set({ forcePathStyle: v })}
+              checked={draft.forcePathStyle}
+              onCheckedChange={(v) => setDraft((d) => ({ ...d, forcePathStyle: v }))}
             />
           </div>
           <div className="flex items-center justify-between gap-2 pt-2">
-            <Button
-              variant="ghost"
-              onClick={() => {
-                cfg.reset();
-                toast.success("Reset to defaults");
-                qc.invalidateQueries();
-              }}
-            >
-              Reset
+            <Button variant="ghost" onClick={resetAll}>
+              Reset to defaults
             </Button>
-            <Button
-              onClick={() => {
-                qc.invalidateQueries();
-                toast.success("Reconnecting…");
-              }}
-            >
+            <Button onClick={applyDraft} disabled={!isDirty}>
               Apply &amp; reconnect
             </Button>
           </div>
@@ -106,16 +137,13 @@ function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-xs text-muted-foreground">
           <p>
-            • Localstash runs entirely in your browser and talks directly to the
-            LocalStack endpoint above.
+            • Localstash runs entirely in your browser and talks directly to the LocalStack endpoint
+            above.
           </p>
+          <p>• Make sure CORS is permitted by your LocalStack instance (it is by default).</p>
           <p>
-            • Make sure CORS is permitted by your LocalStack instance (it is by
-            default).
-          </p>
-          <p>
-            • Press <kbd className="rounded border border-border px-1">⌘K</kbd>{" "}
-            anywhere to open the command palette.
+            • Press <kbd className="rounded border border-border px-1">⌘K</kbd> anywhere to open the
+            command palette.
           </p>
         </CardContent>
       </Card>

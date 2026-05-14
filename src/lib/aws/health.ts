@@ -1,3 +1,4 @@
+import { getEffectiveAwsEndpoint } from "@/lib/aws/effective-endpoint";
 import { getConfig } from "@/store/config";
 
 export type HealthStatus = {
@@ -10,7 +11,8 @@ export type HealthStatus = {
 };
 
 export async function fetchHealth(): Promise<HealthStatus> {
-  const { endpoint } = getConfig();
+  const cfg = getConfig();
+  const endpoint = getEffectiveAwsEndpoint(cfg);
   const url = `${endpoint.replace(/\/$/, "")}/_localstack/health`;
   const t0 = performance.now();
   try {

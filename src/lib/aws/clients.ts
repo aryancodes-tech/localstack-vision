@@ -3,6 +3,7 @@ import { SQSClient } from "@aws-sdk/client-sqs";
 import { LambdaClient } from "@aws-sdk/client-lambda";
 import { EventBridgeClient } from "@aws-sdk/client-eventbridge";
 import { SchedulerClient } from "@aws-sdk/client-scheduler";
+import { getEffectiveAwsEndpoint } from "@/lib/aws/effective-endpoint";
 import { getConfig, useConfig, type AwsConfig } from "@/store/config";
 
 function key(c: AwsConfig) {
@@ -13,7 +14,7 @@ let cache: { key: string; clients: ReturnType<typeof build> } | null = null;
 
 function build(c: AwsConfig) {
   const common = {
-    endpoint: c.endpoint,
+    endpoint: getEffectiveAwsEndpoint(c),
     region: c.region,
     credentials: { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey },
   };
@@ -47,7 +48,7 @@ export function normalizeQueueUrl(url: string): string {
   try {
     const cfg = getConfig();
     const u = new URL(url);
-    const ep = new URL(cfg.endpoint);
+    const ep = new URL(getEffectiveAwsEndpoint(cfg));
     u.protocol = ep.protocol;
     u.host = ep.host;
     return u.toString();

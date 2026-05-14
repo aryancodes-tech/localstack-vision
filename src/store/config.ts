@@ -15,8 +15,8 @@ type ConfigState = AwsConfig & {
 };
 
 const DEFAULTS: AwsConfig = {
-  endpoint: "http://localhost:4566",
-  region: "us-east-1",
+  endpoint: "http://localstack.oceaninfra.localhost",
+  region: "eu-central-1",
   accessKeyId: "test",
   secretAccessKey: "test",
   forcePathStyle: true,
@@ -29,7 +29,8 @@ export const useConfig = create<ConfigState>()(
       set: (patch) => set(patch),
       reset: () => set(DEFAULTS),
     }),
-    { name: "localstack-visualizer-config" }
+    // Bumped key so stale localStorage from the old us-east-1/localhost:4566 defaults is ignored.
+    { name: "localstack-vision-config-v2" }
   )
 );
 

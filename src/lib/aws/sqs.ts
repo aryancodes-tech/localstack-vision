@@ -9,6 +9,7 @@ import {
   DeleteMessageCommand,
   type QueueAttributeName,
 } from "@aws-sdk/client-sqs";
+import { getEffectiveAwsEndpoint } from "@/lib/aws/effective-endpoint";
 import { clients, normalizeQueueUrl } from "./clients";
 import { getConfig } from "@/store/config";
 
@@ -34,7 +35,7 @@ export async function getQueueAttributes(url: string) {
     new GetQueueAttributesCommand({
       QueueUrl: url,
       AttributeNames: ["All" as QueueAttributeName],
-    })
+    }),
   );
   return res.Attributes ?? {};
 }
@@ -57,8 +58,7 @@ export async function createQueue(input: CreateQueueInput) {
     attrs.FifoQueue = "true";
     if (input.contentBasedDeduplication) attrs.ContentBasedDeduplication = "true";
   }
-  if (input.visibilityTimeout != null)
-    attrs.VisibilityTimeout = String(input.visibilityTimeout);
+  if (input.visibilityTimeout != null) attrs.VisibilityTimeout = String(input.visibilityTimeout);
   if (input.delaySeconds != null) attrs.DelaySeconds = String(input.delaySeconds);
   if (input.messageRetentionPeriod != null)
     attrs.MessageRetentionPeriod = String(input.messageRetentionPeriod);
@@ -69,9 +69,7 @@ export async function createQueue(input: CreateQueueInput) {
     });
   }
   const name = input.fifo && !input.name.endsWith(".fifo") ? `${input.name}.fifo` : input.name;
-  const res = await sqs.send(
-    new CreateQueueCommand({ QueueName: name, Attributes: attrs })
-  );
+  const res = await sqs.send(new CreateQueueCommand({ QueueName: name, Attributes: attrs }));
   return res.QueueUrl!;
 }
 
@@ -101,7 +99,7 @@ export async function sendMessage(input: SendMessageInput) {
         Object.entries(input.attributes).map(([k, v]) => [
           k,
           { DataType: "String", StringValue: v },
-        ])
+        ]),
       )
     : undefined;
   return sqs.send(
@@ -112,7 +110,7 @@ export async function sendMessage(input: SendMessageInput) {
       MessageGroupId: input.messageGroupId,
       MessageDeduplicationId: input.messageDeduplicationId,
       MessageAttributes: messageAttributes,
-    })
+    }),
   );
 }
 
@@ -126,7 +124,7 @@ export async function receiveMessages(url: string, max = 10) {
       MessageAttributeNames: ["All"],
       WaitTimeSeconds: 0,
       VisibilityTimeout: 1,
-    })
+    }),
   );
   return res.Messages ?? [];
 }
@@ -145,9 +143,25 @@ export type PeekedMessage = {
 };
 
 export async function peekMessages(queueUrl: string): Promise<PeekedMessage[]> {
-  const { endpoint } = getConfig();
+  const cfg = getConfig();
+  const endpoint = getEffectiveAwsEndpoint(cfg);
+
+  // queueUrl has been normalized to the proxy URL (e.g. http://localhost:8080/000000000000/name).
+  // LocalStack's /_aws/sqs/messages debug endpoint needs a URL it can look up internally.
+  // Rebasing on cfg.endpoint (e.g. http://localstack.oceaninfra.localhost) gives LocalStack
+  // the URL it stored when the queue was created, while the _request_ still goes through
+  // the proxy (endpoint = http://localhost:8080/__ls_ocean).
+  const queuePath = (() => {
+    try {
+      return new URL(queueUrl).pathname;
+    } catch {
+      return queueUrl;
+    }
+  })();
+  const localstackQueueUrl = `${cfg.endpoint.replace(/\/$/, "")}${queuePath}`;
+
   const url = `${endpoint.replace(/\/$/, "")}/_aws/sqs/messages?QueueUrl=${encodeURIComponent(
-    queueUrl
+    localstackQueueUrl,
   )}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Peek failed: HTTP ${res.status}`);
