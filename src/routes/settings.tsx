@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { isOceanInfraHost } from "@/lib/aws/effective-endpoint";
 import { useConfig, type AwsConfig } from "@/store/config";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,23 +77,11 @@ function SettingsPage() {
             />
             <p className="mt-1 text-[11px] text-muted-foreground">
               Use <code>http://localstack.oceaninfra.localhost</code> for Ocean (default), or{" "}
-              <code>http://localhost:4566</code> for standalone LocalStack. With{" "}
-              <code>vite dev</code>, <code>*.oceaninfra.localhost</code> is same-origin proxied so
-              the Ocean gateway does not see a browser <code className="text-[10px]">Origin</code>{" "}
-              (which it rejects with <strong className="text-foreground">403</strong>). That proxy
-              does not run on public deployments: use a reachable URL (tunnel or hosted LocalStack)
-              and ensure CORS allows this site&apos;s origin.
+              <code>http://localhost:4566</code> for standalone LocalStack.{" "}
+              <code>*.oceaninfra.localhost</code> endpoints are automatically proxied server-side so
+              the Ocean gateway never sees a browser{" "}
+              <code className="text-[10px]">Origin</code> header.
             </p>
-            {import.meta.env.PROD && isOceanInfraHost(draft.endpoint) ? (
-              <p className="mt-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-[11px] text-amber-950 dark:text-amber-100">
-                This build is deployed on the public web, but the endpoint looks like local Ocean (
-                <code>*.oceaninfra.localhost</code>). Browsers will send{" "}
-                <code className="text-[10px]">Origin: {typeof window !== "undefined" ? window.location.origin : "…"}</code>{" "}
-                and Ocean&apos;s gateway typically answers <strong>403</strong>. Point the endpoint
-                at a URL your users can reach (with CORS), or use the app from{" "}
-                <code>vite dev</code> with Ocean on the same machine.
-              </p>
-            ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -150,13 +137,10 @@ function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-xs text-muted-foreground">
           <p>
-            • The UI runs in your browser; API calls go to the endpoint above (via the dev-only
-            Ocean proxy when applicable).
+            • Localstash runs entirely in your browser and talks directly to the LocalStack endpoint
+            above.
           </p>
-          <p>
-            • Deployed sites cannot reach <code>*.oceaninfra.localhost</code> on your laptop; use a
-            tunnel or public stack, and allow your site origin in CORS where needed.
-          </p>
+          <p>• Make sure CORS is permitted by your LocalStack instance (it is by default).</p>
           <p>
             • Press <kbd className="rounded border border-border px-1">⌘K</kbd> anywhere to open the
             command palette.
