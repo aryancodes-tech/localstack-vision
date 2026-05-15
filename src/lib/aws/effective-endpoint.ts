@@ -17,7 +17,7 @@ export function isOceanInfraHost(endpoint: string): boolean {
  * without those headers.
  */
 export function getEffectiveAwsEndpoint(cfg: AwsConfig): string {
-  if (typeof window !== "undefined" && import.meta.env.DEV && isOceanInfraHost(cfg.endpoint)) {
+  if (typeof window !== "undefined" && isOceanInfraHost(cfg.endpoint)) {
     return `${window.location.origin}${OCEAN_DEV_PROXY_PATH}`;
   }
   return cfg.endpoint;

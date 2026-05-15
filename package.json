@@ -9,8 +9,12 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "build:docker": "DOCKER_BUILD=1 vite build",
+    "start:docker": "node .output/server/index.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "docker:build": "docker build -t localstack-vision .",
+    "docker:run": "bash scripts/docker-run-random-port.sh localstack-vision",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

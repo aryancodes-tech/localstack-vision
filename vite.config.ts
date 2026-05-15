@@ -22,9 +22,11 @@ import { nodePolyfills } from "vite-plugin-node-polyfills";
 // wrapper treats a function callback as returning *only* the inner Vite config, so top-level
 // keys like `cloudflare` and `tanstackStart` would be ignored.
 const vercelCi = process.env.VERCEL === "1";
+/** Nitro `node` preset for the Docker image (see Dockerfile). */
+const dockerBuild = process.env.DOCKER_BUILD === "1";
 
 export default defineConfig({
-  cloudflare: vercelCi ? false : undefined,
+  cloudflare: vercelCi || dockerBuild ? false : undefined,
   tanstackStart: {
     server: { entry: "server" },
   },
@@ -32,10 +34,27 @@ export default defineConfig({
     envPrefix: ["VITE_", "LOCALSTACK_"],
     plugins: [
       ...(vercelCi ? [nitro({ preset: "vercel" })] : []),
+      ...(dockerBuild
+        ? [
+            nitro({
+              preset: "node",
+              handlers: [
+                {
+                  route: "/__ls_ocean/**",
+                  handler: "./src/server/ocean-nitro-route.ts",
+                },
+              ],
+            }),
+          ]
+        : []),
       oceanLocalstackProxyVitePlugin(),
       // @smithy/util-buffer-from (used by @aws-sdk signing) does `import { Buffer } from "buffer"`.
       // Without this polyfill the browser bundle sees Buffer as undefined and throws on any SDK call.
-      nodePolyfills({ include: ["buffer"], globals: { Buffer: true } }),
+      nodePolyfills({
+        include: ["buffer"],
+        // Do not polyfill `process` in server builds — breaks Nitro's Node server (srvx).
+        globals: { Buffer: true, process: false, global: false },
+      }),
     ],
   },
 });

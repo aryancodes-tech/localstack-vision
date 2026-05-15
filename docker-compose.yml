@@ -1,0 +1,24 @@
+# High ephemeral host port by default; override with HOST_PORT.
+#   docker compose up --build
+#   HOST_PORT=57321 docker compose up --build
+services:
+  web:
+    build: .
+    image: localstack-vision
+    environment:
+      PORT: "8080"
+      NITRO_HOST: "0.0.0.0"
+      # Reach Traefik on Ocean's Docker network (not 127.0.0.1 inside the container).
+      OCEAN_PROXY_UPSTREAM_HOST: traefik
+      OCEAN_PROXY_UPSTREAM_PORT: "80"
+      OCEAN_PROXY_VIRTUAL_HOST: localstack.oceaninfra.localhost
+    ports:
+      - "${HOST_PORT:-58240}:8080"
+    networks:
+      - omnet
+    labels:
+      - "oceaninfra.proxy=true"
+
+networks:
+  omnet:
+    external: true

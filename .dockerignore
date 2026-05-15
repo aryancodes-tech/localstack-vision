@@ -1,0 +1,17 @@
+node_modules
+dist
+.output
+.vercel
+.wrangler
+.tanstack
+.nitro
+.vinxi
+.git
+.github
+*.log
+.env
+.env.*
+!.env.example
+coverage
+.DS_Store
+.cursor

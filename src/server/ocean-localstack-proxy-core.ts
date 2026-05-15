@@ -19,9 +19,11 @@
 import { request as httpRequest } from "node:http";
 import { OCEAN_DEV_PROXY_PATH } from "../lib/aws/effective-endpoint";
 
-const OCEAN_VIRTUAL_HOST = "localstack.oceaninfra.localhost";
-const UPSTREAM_IP = "127.0.0.1";
-const UPSTREAM_PORT = 80;
+const OCEAN_VIRTUAL_HOST =
+  process.env.OCEAN_PROXY_VIRTUAL_HOST ?? "localstack.oceaninfra.localhost";
+/** On Ocean `omnet`, use `traefik`. On the host (vite dev), use `127.0.0.1`. */
+const UPSTREAM_HOST = process.env.OCEAN_PROXY_UPSTREAM_HOST ?? "127.0.0.1";
+const UPSTREAM_PORT = Number(process.env.OCEAN_PROXY_UPSTREAM_PORT ?? "80");
 
 interface ProxyResult {
   status: number;
@@ -38,7 +40,7 @@ function makeRequest(
   return new Promise((resolve, reject) => {
     const req = httpRequest(
       {
-        hostname: UPSTREAM_IP,
+        hostname: UPSTREAM_HOST,
         port: UPSTREAM_PORT,
         path,
         method,
@@ -107,12 +109,12 @@ export async function executeOceanLocalstackProxy(request: Request): Promise<Res
     return new Response(new Uint8Array(result.body), { status: result.status, headers: resHeaders });
   } catch (e) {
     console.error(
-      `[ocean-localstack-proxy] failed to reach ${UPSTREAM_IP}:${UPSTREAM_PORT} (path: ${upstreamPath}):`,
+      `[ocean-localstack-proxy] failed to reach ${UPSTREAM_HOST}:${UPSTREAM_PORT} (path: ${upstreamPath}):`,
       e,
     );
     return new Response(
       `LocalStack proxy failed.\n` +
-        `Could not connect to ${UPSTREAM_IP}:${UPSTREAM_PORT} with Host: ${OCEAN_VIRTUAL_HOST}\n` +
+        `Could not connect to ${UPSTREAM_HOST}:${UPSTREAM_PORT} with Host: ${OCEAN_VIRTUAL_HOST}\n` +
         `Error: ${e}`,
       { status: 502 },
     );
